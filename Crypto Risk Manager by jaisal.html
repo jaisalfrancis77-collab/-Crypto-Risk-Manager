@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<!-- saved from url=(0040)file:///C:/Users/jaisal/Downloads/u.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Risk Manager</title>
+    <style>
+        /* ==== GLOBAL ==== */
+        html,body {margin:0;padding:0;height:100%;overflow:hidden;background:#121212;position:relative;}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position:relative;
+            color: #e0e0e0;
+        }
+
+        /* ==== FLOATING BTC CHART BACKGROUND ==== */
+        .chart-bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            overflow: hidden;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .chart-line {
+            position: absolute;
+            width: 300%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(29, 161, 242, 0.06) 20%, 
+                rgba(29, 161, 242, 0.1) 50%, 
+                rgba(29, 161, 242, 0.06) 80%, 
+                transparent 100%
+            );
+            filter: blur(1.5px);
+            animation: drift 60s linear infinite;
+        }
+        .chart-line svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .chart-line path {
+            fill: none;
+            stroke: #1DA1F2;
+            stroke-width: 2.5;
+            opacity: 0.7;
+            filter: drop-shadow(0 0 6px rgba(29, 161, 242, 0.6));
+            animation: pulse 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes drift {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-66.66%); }
+        }
+        @keyframes pulse {
+            0% { stroke-width: 2.5; opacity: 0.7; }
+            100% { stroke-width: 3; opacity: 0.85; }
+        }
+
+        /* Duplicate lines for seamless loop */
+        .chart-line:nth-child(2) { animation-delay: -20s; }
+        .chart-line:nth-child(3) { animation-delay: -40s; }
+
+        /* ==== CONTAINER ==== */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,.5);
+            max-width: 900px;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .left-panel, .right-panel {
+            flex: 1 1 360px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .left-panel h2, .right-panel h2 {margin-top:0;color:#1DA1F2;}
+        .left-panel p, .right-panel p {margin:5px 0 20px;color:#bbb;}
+
+        /* ==== INPUTS ==== */
+        .input-group {
+            margin:12px 0;
+            display:flex;
+            flex-direction:column;
+        }
+        label {color:#bbb;font-weight:600;margin-bottom:5px;}
+        input {
+            padding:10px;
+            border:1px solid #333;
+            border-radius:5px;
+            background:#2c2c2c;
+            color:#e0e0e0;
+            font-size:1rem;
+            transition:border-color .3s;
+        }
+        input:focus {border-color:#1DA1F2;outline:none;}
+
+        .detected {
+            margin:12px auto;
+            font-weight:600;
+            padding:8px 16px;
+            border-radius:6px;
+            display:inline-block;
+        }
+        .detected.long {background:#2e7d32;color:#fff;}
+        .detected.short {background:#b71c1c;color:#fff;}
+
+        button.calculate {
+            align-self:center;
+            padding:12px 30px;
+            background:linear-gradient(90deg,#1DA1F2,#1a91da);
+            color:white;
+            border:none;
+            border-radius:25px;
+            cursor:pointer;
+            font-size:1rem;
+            text-transform:uppercase;
+            letter-spacing:1px;
+            transition:transform .2s,box-shadow .2s;
+            margin-top:10px;
+        }
+        button.calculate:hover {
+            transform:scale(1.05);
+            box-shadow:0 4px 12px rgba(29,161,242,.4);
+        }
+
+        /* ==== RESULTS ==== */
+        .result {
+            margin-top:20px;
+            display:flex;
+            flex-direction:column;
+            gap:12px;
+        }
+        .result div {
+            padding:14px;
+            border-radius:8px;
+            color:#fff;
+            font-size:0.95rem;
+            transition:all .3s ease;
+        }
+        .risk {background:#b71c1c;}
+        .position {background:#2e7d32;}
+        .lot-size {
+            background:#0d47a1;
+            border:2px solid #1DA1F2;
+            position:relative;
+            overflow:hidden;
+        }
+        .highlight {
+            font-size:1.25rem !important;
+            font-weight:800 !important;
+            color:#fff;
+            display:block;
+            margin-bottom:5px;
+        }
+
+        /* ==== WATERMARK BOX ==== */
+        .watermark-box {
+            margin-top: 8px;
+            align-self: flex-end;
+            background: rgba(29, 161, 242, 0.15);
+            color: #1DA1F2;
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.9px;
+            text-transform: uppercase;
+            padding: 5px 11px;
+            border-radius: 6px;
+            border: 1px solid rgba(29, 161, 242, 0.35);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .watermark-box.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ==== RESPONSIVE ==== */
+        @media (max-width: 768px) {
+            .container {flex-direction:column;padding:15px;}
+            .left-panel, .right-panel {flex:1 1 auto;}
+            .input-group {margin:10px 0;}
+            button.calculate {width:100%;padding:14px;}
+            .watermark-box {font-size:0.62rem;padding:4px 9px;margin-top:6px;align-self:center;}
+        }
+        @media (max-width: 480px) {
+            .container {gap:15px;padding:12px;}
+            input, button.calculate {font-size:0.95rem;}
+            .detected {font-size:0.9rem;padding:6px 12px;}
+            .result div {font-size:0.9rem;}
+            .watermark-box {font-size:0.58rem;padding:3px 7px;}
+        }
+    </style>
+</head>
+<body>
+
+    <!-- FLOATING BTC CHART BACKGROUND -->
+    <div class="chart-bg">
+        <div class="chart-line">
+            <svg viewBox="0 0 1200 600" preserveAspectRatio="none">
+                <path d="M0,300 Q100,250 150,280 T300,260 Q400,230 450,270 T600,240 Q700,210 750,260 T900,230 Q1000,200 1050,250 T1200,220"></path>
+            </svg>
+        </div>
+        <div class="chart-line">
+            <svg viewBox="0 0 1200 600" preserveAspectRatio="none">
+                <path d="M0,280 Q100,230 150,260 T300,240 Q400,210 450,250 T600,220 Q700,190 750,240 T900,210 Q1000,180 1050,230 T1200,200"></path>
+            </svg>
+        </div>
+        <div class="chart-line">
+            <svg viewBox="0 0 1200 600" preserveAspectRatio="none">
+                <path d="M0,320 Q100,270 150,300 T300,280 Q400,250 450,290 T600,260 Q700,230 750,280 T900,250 Q1000,220 1050,270 T1200,240"></path>
+            </svg>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- LEFT: INPUTS -->
+        <div class="left-panel">
+            <h2>Crypto Risk Manager</h2>
+            <p>Enter your trade details.</p>
+
+            <div class="input-group">
+                <label>Account Balance ($)</label>
+                <input type="number" id="accountBalance" placeholder="e.g. 10000">
+            </div>
+            <div class="input-group">
+                <label>Risk Per Trade (%)</label>
+                <input type="number" id="riskPercent" min="0" max="100" step="0.1" placeholder="e.g. 1">
+            </div>
+            <div class="input-group">
+                <label>Entry Price ($)</label>
+                <input type="number" id="entryPrice" placeholder="e.g. 60000">
+            </div>
+            <div class="input-group">
+                <label>Stop Loss Price ($)</label>
+                <input type="number" id="stopLossPrice" placeholder="e.g. 58000">
+            </div>
+
+            <div id="detectedSide" class="detected short" style="display: inline-block;">SELL (Short)</div>
+
+            <button class="calculate" onclick="calculatePosition()">Calculate</button>
+        </div>
+
+        <!-- RIGHT: OUTPUTS -->
+        <div class="right-panel">
+            <h2>Results</h2>
+            <p>Your safe position size.</p>
+            <div class="result" id="result">
+                <div class="risk">Maximum Risk Amount: $1.15<br><small>Dollar amount you are willing to lose.</small></div>
+                <div class="position">Position Size: 75.163399 units<br><small>Number of crypto units to sell.</small></div>
+                <div class="lot-size">
+                    <span class="highlight">Lot Size: $198.53</span><br>
+                    <small>Total $ value of the position.</small>
+                </div>
+                <div class="watermark-box visible">By jaisal_x7</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ---------- CALCULATOR LOGIC ---------- */
+        function updateDetectedSide(entry, stop) {
+            const badge = document.getElementById('detectedSide');
+            if (isNaN(entry) || isNaN(stop)) {
+                badge.style.display = 'none';
+                return null;
+            }
+
+            if (entry > stop) {
+                badge.textContent = 'BUY (Long)';
+                badge.className = 'detected long';
+                badge.style.display = 'inline-block';
+                return 'long';
+            } else if (entry < stop) {
+                badge.textContent = 'SELL (Short)';
+                badge.className = 'detected short';
+                badge.style.display = 'inline-block';
+                return 'short';
+            } else {
+                badge.textContent = 'Invalid: Entry = Stop-Loss';
+                badge.className = 'detected';
+                badge.style.display = 'inline-block';
+                return null;
+            }
+        }
+
+        ['entryPrice', 'stopLossPrice'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                const entry = parseFloat(document.getElementById('entryPrice').value);
+                const stop  = parseFloat(document.getElementById('stopLossPrice').value);
+                updateDetectedSide(entry, stop);
+            });
+        });
+
+        function calculatePosition() {
+            const accountBalance = parseFloat(document.getElementById('accountBalance').value);
+            const riskPercent    = parseFloat(document.getElementById('riskPercent').value) / 100;
+            const entryPrice     = parseFloat(document.getElementById('entryPrice').value);
+            const stopLossPrice  = parseFloat(document.getElementById('stopLossPrice').value);
+
+            if (isNaN(accountBalance) || isNaN(riskPercent) || isNaN(entryPrice) || isNaN(stopLossPrice)) {
+                alert('Please fill in all fields with valid numbers.');
+                return;
+            }
+
+            const tradeSide = updateDetectedSide(entryPrice, stopLossPrice);
+            if (!tradeSide) {
+                alert('Entry price and Stop-Loss price cannot be equal.');
+                return;
+            }
+
+            const maxRiskAmount = accountBalance * riskPercent;
+            const priceDiff = tradeSide === 'long'
+                ? entryPrice - stopLossPrice
+                : stopLossPrice - entryPrice;
+
+            if (priceDiff <= 0) {
+                alert('Price difference is invalid. Check Entry and Stop-Loss.');
+                return;
+            }
+
+            const positionSize   = maxRiskAmount / priceDiff;
+            const lotSize        = positionSize * entryPrice;
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="risk">Maximum Risk Amount: $${maxRiskAmount.toFixed(2)}<br><small>Dollar amount you are willing to lose.</small></div>
+                <div class="position">Position Size: ${positionSize.toFixed(6)} units<br><small>Number of crypto units to ${tradeSide === 'long' ? 'buy' : 'sell'}.</small></div>
+                <div class="lot-size">
+                    <span class="highlight">Lot Size: $${lotSize.toFixed(2)}</span><br>
+                    <small>Total $ value of the position.</small>
+                </div>
+                <div class="watermark-box">genz_.trader by jaisal_x7</div>
+            `;
+
+            setTimeout(() => {
+                const box = resultDiv.querySelector('.watermark-box');
+                if (box) box.classList.add('visible');
+            }, 150);
+        }
+    </script>
+
+</body></html>
